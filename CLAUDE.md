@@ -65,6 +65,16 @@ No test suite or linter is configured.
 
 **Interactive prompt detection**: `monitor.py:_detect_interactive_prompt` scans terminal text for y/n, ❯, ◯/◉, ☐/☑ patterns and generates inline keyboard buttons in Telegram.
 
+**Screenshot fallback chain** (`win32_api.py:capture_window_screenshot`):
+1. `PrintWindow(PW_RENDERFULLCONTENT)` — preferred, captures off-screen content
+2. `PrintWindow(0)` — simpler mode fallback
+3. `BitBlt` — direct DC copy
+4. `ImageGrab.grab(bbox=...)` — screen-region capture (requires window visible)
+5. Black-image detection (`_is_mostly_black`) triggers step 4 automatically
+6. `activate_first=True` parameter activates the window before capture — needed for Windows Terminal tabs that share one container window
+
+**Window detection** (`claude_detect.py`): Terminal windows (`CASCADIA_HOSTING_WINDOW_CLASS`, `ConsoleWindowClass`, `mintty`) are identified by title-character heuristics. Stale handles are filtered via `win32gui.IsWindow()`. Results are sorted: Claude windows before Windsurf, idle before thinking.
+
 ### Dual-channel input
 
 Both Telegram handlers and REST API endpoints write to the same shared `state` and inject text into the same target Claude window. The Web UI connects via WebSocket for real-time updates.
@@ -87,5 +97,6 @@ Expo Router app with Zustand state management. Key structure:
 - `.windsurfrules` contains CodeChat binary integration rules for Windsurf IDE — not relevant to Claude Code
 - The `codechat/` directory contains third-party binary executables, do not modify
 - Win32 API calls in `win32_api.py` use raw ctypes — handle with care, incorrect struct definitions can crash the process
+- Windows Terminal tabs share a single HWND container; `capture_window_screenshot(handle, activate_first=True)` is needed for per-tab screenshots (used in `/windows`), while passive monitoring uses `activate_first=False` to avoid disrupting Claude
 - `handlers.py` is the largest file; each Telegram command is a separate `cmd_*` async function
 - Auth is enforced at two levels: Telegram user ID whitelist (`ALLOWED_USER_IDS`) and Bearer token for REST/WebSocket API

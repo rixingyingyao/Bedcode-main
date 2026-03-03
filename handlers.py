@@ -357,7 +357,7 @@ async def cmd_windows(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         reply_markup=InlineKeyboardMarkup(buttons),
     )
     for i, w in enumerate(windows[:3]):
-        img_data = await asyncio.to_thread(capture_window_screenshot, w["handle"])
+        img_data = await asyncio.to_thread(capture_window_screenshot, w["handle"], True)
         if img_data:
             label = w.get("label", "") or f"#{i+1}"
             st_label = {"thinking": "思考中", "idle": "空闲", "unknown": "未知"}.get(w["state"], "?")

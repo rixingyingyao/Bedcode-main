@@ -88,9 +88,13 @@ def _is_mostly_black(img: Image.Image) -> bool:
         return False
 
 
-def capture_window_screenshot(handle: int) -> bytes | None:
-    """使用 PrintWindow API 截屏 — 不需要激活窗口，不打断思考。"""
+def capture_window_screenshot(handle: int, activate_first: bool = False) -> bytes | None:
+    """使用 PrintWindow API 截屏。activate_first=True 时会短暂激活目标窗口提升准确率。"""
     try:
+        if activate_first:
+            _activate_window(handle)
+            time.sleep(0.1)
+
         rect = ctypes.wintypes.RECT()
         user32.GetWindowRect(handle, ctypes.byref(rect))
         width = rect.right - rect.left
