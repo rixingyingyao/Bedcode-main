@@ -363,7 +363,7 @@ async def cmd_windows(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             st_label = {"thinking": "思考中", "idle": "空闲", "unknown": "未知"}.get(w["state"], "?")
             await update.message.reply_photo(
                 photo=img_data,
-                caption=f"{label} [{st_label}]",
+                caption=f"{label} [{st_label}]\nhandle={w['handle']}\n{w['title'][:40]}",
             )
     if len(windows) > 3:
         await update.message.reply_text(f"📸 仅显示前 3 个窗口截图（共 {len(windows)} 个）")

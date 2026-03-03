@@ -5,6 +5,7 @@ import glob
 import logging
 import time
 
+import win32gui
 from pywinauto import Desktop
 
 from config import SPINNER_CHARS, state
@@ -286,14 +287,17 @@ def find_claude_windows() -> list[dict]:
         desktop = Desktop(backend="win32")
         for w in desktop.windows():
             try:
+                handle = w.handle
+                if not win32gui.IsWindow(handle):
+                    continue
                 title = w.window_text()
                 cls = w.class_name()
                 if _is_claude_window(title, cls):
                     st = detect_claude_state(title)
-                    label = state["window_labels"].get(w.handle, "")
+                    label = state["window_labels"].get(handle, "")
                     results.append({
                         "title": title,
-                        "handle": w.handle,
+                        "handle": handle,
                         "class": cls,
                         "state": st,
                         "label": label,
@@ -301,10 +305,10 @@ def find_claude_windows() -> list[dict]:
                     })
                 elif _is_windsurf_window(title, cls):
                     st = detect_windsurf_state(title)
-                    label = state["window_labels"].get(w.handle, "")
+                    label = state["window_labels"].get(handle, "")
                     results.append({
                         "title": title,
-                        "handle": w.handle,
+                        "handle": handle,
                         "class": cls,
                         "state": st,
                         "label": label,
@@ -317,7 +321,8 @@ def find_claude_windows() -> list[dict]:
         return _windows_cache if _windows_cache else []
     
     order = {"idle": 0, "thinking": 1, "unknown": 2}
-    results.sort(key=lambda x: (order.get(x["state"], 9), -x["handle"]))
+    type_order = {"claude": 0, "windsurf": 1}
+    results.sort(key=lambda x: (type_order.get(x.get("type", ""), 9), order.get(x["state"], 9), -x["handle"]))
     _windows_cache = results
     _windows_cache_time = time.time()
     return results

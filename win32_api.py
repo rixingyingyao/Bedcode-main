@@ -7,7 +7,7 @@ import ctypes
 import ctypes.wintypes
 import logging
 
-from PIL import Image
+from PIL import Image, ImageGrab, ImageStat
 
 logger = logging.getLogger("bedcode")
 
@@ -75,6 +75,19 @@ class INPUT(ctypes.Structure):
 
 
 # ── 截屏 ─────────────────────────────────────────────────────────
+def _is_mostly_black(img: Image.Image) -> bool:
+    """检测截图是否几乎全黑（常见于某些窗口渲染路径）。"""
+    try:
+        sample = img
+        if img.width > 320:
+            ratio = 320 / img.width
+            sample = img.resize((320, max(1, int(img.height * ratio))))
+        stat = ImageStat.Stat(sample)
+        return max(stat.mean) < 8
+    except Exception:
+        return False
+
+
 def capture_window_screenshot(handle: int) -> bytes | None:
     """使用 PrintWindow API 截屏 — 不需要激活窗口，不打断思考。"""
     try:
@@ -120,6 +133,13 @@ def capture_window_screenshot(handle: int) -> bytes | None:
 
             img = Image.frombuffer("RGBA", (width, height), buf, "raw", "BGRA", 0, 1)
             img = img.convert("RGB")
+
+            if _is_mostly_black(img):
+                # PrintWindow 路径得到黑图时，退化到屏幕区域抓取（需要窗口可见）
+                try:
+                    img = ImageGrab.grab(bbox=(rect.left, rect.top, rect.right, rect.bottom)).convert("RGB")
+                except Exception:
+                    pass
 
             max_w = 1280
             if img.width > max_w:
